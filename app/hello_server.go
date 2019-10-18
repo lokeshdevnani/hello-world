@@ -7,8 +7,11 @@ import (
 )
 
 func handler(w http.ResponseWriter, r *http.Request) {
-    name := "World"
-	w.Write([]byte(fmt.Sprintf("Hello, %s\n", name)))
+    name := r.URL.Query().Get("name")
+    if name == "" {
+        name = "World"
+    }
+    w.Write([]byte(fmt.Sprintf("Hello, %s\n", name)))
 }
 
 func main() {
