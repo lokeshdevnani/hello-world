@@ -1,0 +1,98 @@
+---
+# Source: loki-stack/charts/prometheus/templates/server-deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    component: "server"
+    app: prometheus
+    release: release-name
+    chart: prometheus-8.11.6
+    heritage: Tiller
+  name: prometheus-server
+spec:
+  selector:
+    matchLabels:
+      component: "server"
+      app: prometheus
+      release: release-name
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        component: "server"
+        app: prometheus
+        release: release-name
+        chart: prometheus-8.11.6
+        heritage: Tiller
+    spec:
+      serviceAccountName: prometheus-server
+      initContainers:
+      - name: "init-chown-data"
+        image: "busybox:latest"
+        imagePullPolicy: "IfNotPresent"
+        resources:
+          {}
+          
+        # 65534 is the nobody user that prometheus uses.
+        command: ["chown", "-R", "65534:65534", "/data"]
+        volumeMounts:
+        - name: storage-volume
+          mountPath: /data
+          subPath: ""
+      containers:
+        - name: prometheus-server-configmap-reload
+          image: "jimmidyson/configmap-reload:v0.2.2"
+          imagePullPolicy: "IfNotPresent"
+          args:
+            - --volume-dir=/etc/config
+            - --webhook-url=http://127.0.0.1:9090/-/reload
+          resources:
+            {}
+            
+          volumeMounts:
+            - name: config-volume
+              mountPath: /etc/config
+              readOnly: true
+
+        - name: prometheus-server
+          image: "prom/prometheus:v2.9.2"
+          imagePullPolicy: "IfNotPresent"
+          args:
+            - --storage.tsdb.retention.time=15d
+            - --config.file=/etc/config/prometheus.yml
+            - --storage.tsdb.path=/data
+            - --web.console.libraries=/etc/prometheus/console_libraries
+            - --web.console.templates=/etc/prometheus/consoles
+            - --web.enable-lifecycle
+          ports:
+            - containerPort: 9090
+          readinessProbe:
+            httpGet:
+              path: /-/ready
+              port: 9090
+            initialDelaySeconds: 30
+            timeoutSeconds: 30
+          livenessProbe:
+            httpGet:
+              path: /-/healthy
+              port: 9090
+            initialDelaySeconds: 30
+            timeoutSeconds: 30
+          resources:
+            {}
+            
+          volumeMounts:
+            - name: config-volume
+              mountPath: /etc/config
+            - name: storage-volume
+              mountPath: /data
+              subPath: ""
+      terminationGracePeriodSeconds: 300
+      volumes:
+        - name: config-volume
+          configMap:
+            name: prometheus-server
+        - name: storage-volume
+          emptyDir:
+            {}

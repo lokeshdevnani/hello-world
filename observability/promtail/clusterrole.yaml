@@ -1,0 +1,22 @@
+---
+# Source: loki-stack/charts/promtail/templates/clusterrole.yaml
+
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  labels:
+    app: promtail
+    chart: promtail-0.12.3
+    release: release-name
+    heritage: Tiller
+  name: release-name-promtail-clusterrole
+  namespace: default
+rules:
+- apiGroups: [""] # "" indicates the core API group
+  resources:
+  - nodes
+  - nodes/proxy
+  - services
+  - endpoints
+  - pods
+  verbs: ["get", "watch", "list"]

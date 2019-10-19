@@ -1,0 +1,82 @@
+---
+# Source: loki-stack/charts/prometheus/templates/alertmanager-deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    component: "alertmanager"
+    app: prometheus
+    release: release-name
+    chart: prometheus-8.11.6
+    heritage: Tiller
+  name: release-name-prometheus-alertmanager
+spec:
+  selector:
+    matchLabels:
+      component: "alertmanager"
+      app: prometheus
+      release: release-name
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        component: "alertmanager"
+        app: prometheus
+        release: release-name
+        chart: prometheus-8.11.6
+        heritage: Tiller
+    spec:
+      serviceAccountName: release-name-prometheus-alertmanager
+      containers:
+        - name: prometheus-alertmanager
+          image: "prom/alertmanager:v0.17.0"
+          imagePullPolicy: "IfNotPresent"
+          env:
+            - name: POD_IP
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: status.podIP
+          args:
+            - --config.file=/etc/config/alertmanager.yml
+            - --storage.path=/data
+            - --cluster.advertise-address=$(POD_IP):6783
+            - --web.external-url=/
+
+          ports:
+            - containerPort: 9093
+          readinessProbe:
+            httpGet:
+              path: /#/status
+              port: 9093
+            initialDelaySeconds: 30
+            timeoutSeconds: 30
+          resources:
+            {}
+            
+          volumeMounts:
+            - name: config-volume
+              mountPath: /etc/config
+            - name: storage-volume
+              mountPath: "/data"
+              subPath: ""
+
+        - name: prometheus-alertmanager-configmap-reload
+          image: "jimmidyson/configmap-reload:v0.2.2"
+          imagePullPolicy: "IfNotPresent"
+          args:
+            - --volume-dir=/etc/config
+            - --webhook-url=http://127.0.0.1:9093/-/reload
+          resources:
+            {}
+            
+          volumeMounts:
+            - name: config-volume
+              mountPath: /etc/config
+              readOnly: true
+      volumes:
+        - name: config-volume
+          configMap:
+            name: release-name-prometheus-alertmanager
+        - name: storage-volume
+          emptyDir: {}

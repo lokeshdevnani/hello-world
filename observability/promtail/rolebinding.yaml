@@ -1,0 +1,21 @@
+---
+# Source: loki-stack/charts/promtail/templates/rolebinding.yaml
+
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: release-name-promtail
+  namespace: default
+  labels:
+    app: promtail
+    chart: promtail-0.12.3
+    heritage: Tiller
+    release: release-name
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: release-name-promtail
+subjects:
+- kind: ServiceAccount
+  name: release-name-promtail
+

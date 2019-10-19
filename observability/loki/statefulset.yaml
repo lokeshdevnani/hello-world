@@ -1,0 +1,96 @@
+---
+# Source: loki-stack/charts/loki/templates/statefulset.yaml
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: release-name-loki
+  namespace: default
+  labels:
+    app: loki
+    chart: loki-0.16.0
+    release: release-name
+    heritage: Tiller
+  annotations:
+    {}
+    
+spec:
+  podManagementPolicy: OrderedReady
+  replicas: 1
+  selector:
+    matchLabels:
+      app: loki
+      release: release-name
+  serviceName: release-name-loki-headless
+  updateStrategy:
+    type: RollingUpdate
+    
+  template:
+    metadata:
+      labels:
+        app: loki
+        name: loki
+        release: release-name
+      annotations:
+        checksum/config: 5674bbd703e043517f9cb57b6817954ad86d46ed4a9d1e9c09cc5e663ed26864
+        prometheus.io/port: http-metrics
+        prometheus.io/scrape: "true"
+        
+    spec:
+      serviceAccountName: release-name-loki
+      securityContext:
+        fsGroup: 10001
+        runAsGroup: 10001
+        runAsNonRoot: true
+        runAsUser: 10001
+        
+      containers:
+        - name: loki
+          image: "grafana/loki:v0.3.0"
+          imagePullPolicy: IfNotPresent
+          args:
+            - "-config.file=/etc/loki/loki.yaml"
+          volumeMounts:
+            - name: config
+              mountPath: /etc/loki
+            - name: storage
+              mountPath: "/data"
+              subPath: 
+          ports:
+            - name: http-metrics
+              containerPort: 3100
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /ready
+              port: http-metrics
+            initialDelaySeconds: 45
+            
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: http-metrics
+            initialDelaySeconds: 45
+            
+          resources:
+            {}
+            
+          securityContext:
+            readOnlyRootFilesystem: true
+          env:
+      nodeSelector:
+        {}
+        
+      affinity:
+        {}
+        
+      tolerations:
+        []
+        
+      terminationGracePeriodSeconds: 30
+      volumes:
+        - name: config
+          secret:
+            secretName: release-name-loki
+        - name: storage
+          emptyDir: {}
+

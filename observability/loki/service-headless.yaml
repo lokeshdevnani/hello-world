@@ -1,0 +1,22 @@
+---
+# Source: loki-stack/charts/loki/templates/service-headless.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: release-name-loki-headless
+  namespace: default
+  labels:
+    app: loki
+    chart: loki-0.16.0
+    release: release-name
+    heritage: Tiller
+spec:
+  clusterIP: None
+  ports:
+    - port: 3100
+      protocol: TCP
+      name: http-metrics
+      targetPort: http-metrics
+  selector:
+    app: loki
+    release: release-name
