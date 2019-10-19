@@ -19,6 +19,10 @@ func init() {
   log.SetLevel(log.InfoLevel)
 }
 
+func healthz(w http.ResponseWriter, _ *http.Request) {
+	w.WriteHeader(http.StatusOK)
+}
+
 func handler(w http.ResponseWriter, r *http.Request) {
     name := r.URL.Query().Get("name")
     if name == "" {
@@ -30,6 +34,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 
 func main() {
 	r := mux.NewRouter()
+	r.HandleFunc("/healthz", healthz)
 	r.HandleFunc("/", handler)
 
 	srv := &http.Server{
